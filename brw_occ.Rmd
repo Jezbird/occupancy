@@ -1,0 +1,44 @@
+---
+title: "brw_occ"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Burrow occupancy
+
+
+
+```{r }
+library(tidyverse)
+
+raw_dat <- read.csv("data_brw_occ.csv", 
+                  header =T, na.strings=c("")) # this took literally ages to figure out I needed to add the na.strings code to enable steps further down
+data <- raw_dat %>% select(1:7,9, 14:36, 39)
+
+
+
+whp <- data %>% filter(type == "WHP", site != "SLAB3", site != "SLBC2", site != "SLBC3") # couldn't get the | or separator working here
+whp$species <- fct_explicit_na(whp$species, na_level = "Empty") # having NAs was distrupting the summarise step I think and pivot_wider which couldn't deal with making an NA column heading. So eventually found this function
+
+# this next code chunk was a nightmare because my data is factors rather than numeric, so lots of what we'd done in the rain example seemed to really struggle. Hence all of the steps above to get things in a format that this next bit of code would work for.
+whp1 <- whp %>% group_by(brw, species) %>%
+                summarise(count = n()) %>%
+                pivot_wider(names_from = species, values_from = count) #%>%
+                mutate_all(funs(coalesce(., 0L)))
+
+# the result still isn't what I want. The data is based on making three visits to burrows. Therefore one burrow can have multiple values e.g. empty on one visit and white-headed petrel on the next. In such cases the burrow needs to register as a burrow occupied by a white-headed petrel. The summary needs to be at the burrow level rather than the visit level, so an occupied burrow on any one visit needs to trump an empty burrow on a different visit.
+```
+
+All - burrow dimensions
+    - sign (split by breeding stage)
+    
+    
+WHP - proportion of burrows occupied
+    - proportion occupied by Sooty Sheawaters
+    - breeding success
+    - camera vs bs reliability
+    - observer error
+    - type 1 error
